@@ -15,6 +15,13 @@ RUN npm install
 
 # Bundle app source
 ADD . .
+RUN npm run build
 
-EXPOSE 3000
-CMD [ "npx", "ts-node index.ts" ]
+FROM node:12.17.0-alpine
+WORKDIR /usr
+COPY package.json ./
+RUN npm install --only=production
+COPY --from=0 /usr/dist .
+RUN npm install pm2 -g
+EXPOSE 80
+CMD ["pm2-runtime","index.js"]

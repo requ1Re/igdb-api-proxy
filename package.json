@@ -5,8 +5,9 @@
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node index.ts",
-    "dev": "NODE_ENV=development npx nodemon ./index.ts"
+    "start": "ts-node dist/index.js",
+    "dev": "NODE_ENV=development npx nodemon ./index.ts",
+    "build": "tsc -p ."
   },
   "author": "",
   "license": "ISC",
