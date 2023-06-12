@@ -29,5 +29,5 @@ jobs:
         with:
           context: ./
           tags: |
-            requ1Re/igdb-api-proxy:latest
-            ghcr.io/requ1Re/igdb-api-proxy:latest
+            requ1re/igdb-api-proxy:latest
+            ghcr.io/requ1re/igdb-api-proxy:latest
