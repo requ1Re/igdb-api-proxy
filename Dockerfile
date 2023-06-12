@@ -17,4 +17,4 @@ RUN npm install
 ADD . .
 
 EXPOSE 3000
-CMD [ "ts-node", "index.ts" ]
+CMD [ "npx", "ts-node index.ts" ]
