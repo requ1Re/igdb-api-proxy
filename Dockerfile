@@ -15,7 +15,7 @@ RUN npm run build
 FROM --platform=$TARGETPLATFORM node:18-slim
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --only=production
+RUN npm install --omit=dev
 COPY --from=0 /app/dist .
 RUN npm install pm2 -g
 EXPOSE 80
