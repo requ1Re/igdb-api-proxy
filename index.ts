@@ -14,6 +14,7 @@ let tokenResponse: TokenResponse;
 let tokenExpiryDateUnix = Date.now()/1000
 
 app.get("*", async (req: Request, res: Response) => {
+  if(req.header("Authorization") !== "Bearer " + process.env.APP_API_TOKEN && process.env.NODE_ENV !== "development") return res.status(401).send("Unauthorized");
   console.log(`[server] Fetching: ${igdbBaseUrl}${req.url}`);
   
   console.log(`[server] Token expiry: ${tokenExpiryDateUnix} - current time: ${Date.now()/1000}`);
