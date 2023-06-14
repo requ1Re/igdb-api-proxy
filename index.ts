@@ -1,6 +1,7 @@
-import dotenv from 'dotenv';
-import express, { Express, Request, Response } from 'express';
-import { TokenResponse } from './TokenResponse';
+import axios from "axios";
+import dotenv from "dotenv";
+import express, { Express, Request, Response } from "express";
+import { TokenResponse } from "./TokenResponse";
 
 dotenv.config();
 
@@ -11,27 +12,34 @@ const twitchOauthUrl = `https://id.twitch.tv/oauth2/token?client_id=${process.en
 const igdbBaseUrl = "https://api.igdb.com/v4";
 
 let tokenResponse: TokenResponse;
-let tokenExpiryDateUnix = Date.now()/1000
+let tokenExpiryDateUnix = Date.now() / 1000;
 
-app.all("*", async (req: Request, res: Response) => {
-  if(req.header("Authorization") !== "Bearer " + process.env.APP_API_TOKEN && process.env.NODE_ENV !== "development") return res.status(401).send("Unauthorized");
+app.all("*", express.raw(), async (req: Request, res: Response) => {
+  if (req.header("Authorization") !== "Bearer " + process.env.APP_API_TOKEN && process.env.NODE_ENV !== "development")
+    return res.status(401).send("Unauthorized");
+
   console.log(`[server] Fetching: ${igdbBaseUrl}${req.url}`);
-  
-  console.log(`[server] Token expiry: ${tokenExpiryDateUnix} - current time: ${Date.now()/1000}`);
-  if(Date.now() / 1000 > tokenExpiryDateUnix){
+  console.log(`[server] Body: ${req.body}`);
+
+  console.log(`[server] Token expiry: ${tokenExpiryDateUnix} - current time: ${Date.now() / 1000}`);
+  if (Date.now() / 1000 > tokenExpiryDateUnix) {
     await refreshToken();
   }
 
   try {
-    const response = await fetch(igdbBaseUrl + req.url, {
+    const response = await axios.request({
+      url: igdbBaseUrl + req.url,
       method: req.method,
-      body: req.method !== "GET" ? "fields *;" : null,
-      headers: getHeaders()
+      headers: getHeaders(),
+      data: req.method !== "GET" ? "fields *;" : null,
+      responseType: req.url.endsWith(".pb") ? "arraybuffer" : undefined,
+      transformResponse: (r) => r,
     });
-    const json = await response.json();
+    const rawBody = response.data;
 
-    console.log("[server] Response: " + JSON.stringify(json));
-    res.send(json);
+    console.log("[server] Response: ", rawBody);
+    res.contentType(req.url.endsWith(".pb") ? "application/protobuf" : "application/json");
+    res.send(rawBody);
   } catch (err) {
     console.log("[server] Error: " + err);
     res.send(err);
@@ -39,20 +47,20 @@ app.all("*", async (req: Request, res: Response) => {
 });
 
 app.listen(port, async () => {
-  if(!process.env.CLIENT_ID || !process.env.CLIENT_SECRET || !process.env.APP_API_TOKEN){
+  if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET || !process.env.APP_API_TOKEN) {
     console.log("[server] Missing environment variables");
     return;
   }
-  
+
   console.log(`[server]: Server is running at http://localhost:${port}`);
 
   // await refreshToken()
 });
 
-async function refreshToken(){
+async function refreshToken() {
   console.log("[Twitch] Refreshing token");
   let _tokenResponse = await refreshTokenResponse();
-  if(!_tokenResponse){
+  if (!_tokenResponse) {
     console.log("[Twitch] Failed to get token response");
     return;
   }
@@ -66,7 +74,7 @@ async function refreshTokenResponse(): Promise<TokenResponse | undefined> {
   const response = await fetch(twitchOauthUrl, {
     method: "POST",
   });
-  if(!response.ok){
+  if (!response.ok) {
     console.log(response.statusText);
     return;
   }
@@ -77,6 +85,6 @@ async function refreshTokenResponse(): Promise<TokenResponse | undefined> {
 function getHeaders(): Record<string, string> {
   return {
     "Client-ID": process.env.CLIENT_ID!,
-    "Authorization": `Bearer ${tokenResponse.access_token}`
-  }
-};
+    Authorization: `Bearer ${tokenResponse.access_token}`,
+  };
+}
