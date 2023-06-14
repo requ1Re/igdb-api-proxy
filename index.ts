@@ -1,5 +1,4 @@
 import axios from "axios";
-import { urlencoded } from "body-parser";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
 import { TokenResponse } from "./TokenResponse";
@@ -15,7 +14,13 @@ const igdbBaseUrl = "https://api.igdb.com";
 let tokenResponse: TokenResponse;
 let tokenExpiryDateUnix = Date.now() / 1000;
 
-app.all("*", urlencoded(), async (req: Request, res: Response) => {
+app.use(express.urlencoded({extended: false,
+  verify: function(req: any, res: any, buf: any, encoding: any) {
+    req.textBody = buf.toString(encoding);
+  }
+}));
+
+app.all("*", async (req: Request, res: Response) => {
   if (req.header("Authorization")?.split(' ')[1] !== process.env.APP_API_TOKEN && process.env.NODE_ENV !== "development"){
     return res.status(401).send("Unauthorized");
   }
@@ -23,7 +28,7 @@ app.all("*", urlencoded(), async (req: Request, res: Response) => {
   console.log(`[server] -------------------`);
   console.log(`[server] --- New Request ---`);
   console.log(`[server] URL`, req.url);
-  console.log(`[server] Body`, req.body);
+  console.log(`[server] Text Body`, (req as any).textBody);
   console.log(`[server] Query`, req.query);
   console.log(`[server] Params`, req.params);
   console.log(`[server] Content-Type`, req.headers["content-type"]);
@@ -36,13 +41,6 @@ app.all("*", urlencoded(), async (req: Request, res: Response) => {
   }
 
   try {
-    let str = ""
-    let keys = Object.keys(req.body);
-    let values = Object.values(req.body);
-    for(let i = 0; i < keys.length; i++){
-      str += keys[i] + "=" + values[i];
-    }
-    console.log("str", str)
     const response = await axios.request({
       url: igdbBaseUrl + req.url,
       method: req.method,
@@ -50,7 +48,7 @@ app.all("*", urlencoded(), async (req: Request, res: Response) => {
         "Content-Type": "text/plain",
         ...getHeaders()
       },
-      data: str,
+      data: (req as any).textBody,
       responseType: req.url.endsWith(".pb") ? "arraybuffer" : undefined,
       transformResponse: (r) => r,
     });
