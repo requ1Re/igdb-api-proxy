@@ -1,4 +1,5 @@
 import axios from "axios";
+import { urlencoded } from "body-parser";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
 import { TokenResponse } from "./TokenResponse";
@@ -9,21 +10,28 @@ const app: Express = express();
 const port = process.env.PORT ?? 3000;
 
 const twitchOauthUrl = `https://id.twitch.tv/oauth2/token?client_id=${process.env.CLIENT_ID}&client_secret=${process.env.CLIENT_SECRET}&grant_type=client_credentials`;
-const igdbBaseUrl = "https://api.igdb.com/v4";
+const igdbBaseUrl = "https://api.igdb.com";
 
 let tokenResponse: TokenResponse;
 let tokenExpiryDateUnix = Date.now() / 1000;
 
-app.all("*", async (req: Request, res: Response) => {
+app.all("*", urlencoded(), async (req: Request, res: Response) => {
   if (req.header("Authorization")?.split(' ')[1] !== process.env.APP_API_TOKEN && process.env.NODE_ENV !== "development"){
     return res.status(401).send("Unauthorized");
   }
 
-  console.log(`[server] Fetching: ${igdbBaseUrl}${req.url}`);
-  console.log(`[server] Body: ${req.body}`);
+  console.log(`[server] -------------------`);
+  console.log(`[server] --- New Request ---`);
+  console.log(`[server] URL`, req.url);
+  console.log(`[server] Body`, req.body);
+  console.log(`[server] Query`, req.query);
+  console.log(`[server] Params`, req.params);
+  console.log(`[server] Content-Type`, req.headers["content-type"]);
+  console.log(`[server] Method`, req.method);
 
-  console.log(`[server] Token expiry: ${tokenExpiryDateUnix} - current time: ${Date.now() / 1000}`);
+
   if (Date.now() / 1000 > tokenExpiryDateUnix) {
+    console.log(`[server] Token expired`);
     await refreshToken();
   }
 
@@ -31,8 +39,11 @@ app.all("*", async (req: Request, res: Response) => {
     const response = await axios.request({
       url: igdbBaseUrl + req.url,
       method: req.method,
-      headers: getHeaders(),
-      data: req.method !== "GET" ? "fields *;" : null,
+      headers: {
+        "Content-Type": "text/plain",
+        ...getHeaders()
+      },
+      data: Object.keys(req.body)[0],
       responseType: req.url.endsWith(".pb") ? "arraybuffer" : undefined,
       transformResponse: (r) => r,
     });
@@ -45,6 +56,7 @@ app.all("*", async (req: Request, res: Response) => {
     console.log("[server] Error: " + err);
     res.send(err);
   }
+  console.log(`[server] -------------------`);
 });
 
 app.listen(port, async () => {
