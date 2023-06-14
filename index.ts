@@ -13,7 +13,7 @@ const igdbBaseUrl = "https://api.igdb.com/v4";
 let tokenResponse: TokenResponse;
 let tokenExpiryDateUnix = Date.now()/1000
 
-app.get("*", async (req: Request, res: Response) => {
+app.all("*", async (req: Request, res: Response) => {
   if(req.header("Authorization") !== "Bearer " + process.env.APP_API_TOKEN && process.env.NODE_ENV !== "development") return res.status(401).send("Unauthorized");
   console.log(`[server] Fetching: ${igdbBaseUrl}${req.url}`);
   
@@ -24,11 +24,12 @@ app.get("*", async (req: Request, res: Response) => {
 
   try {
     const response = await fetch(igdbBaseUrl + req.url, {
-      method: "POST",
-      body: "fields *;",
+      method: req.method,
+      body: req.method !== "GET" ? "fields *;" : null,
       headers: getHeaders()
     });
     const json = await response.json();
+
     console.log("[server] Response: " + JSON.stringify(json));
     res.send(json);
   } catch (err) {
