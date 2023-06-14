@@ -36,6 +36,13 @@ app.all("*", urlencoded(), async (req: Request, res: Response) => {
   }
 
   try {
+    let str = ""
+    let keys = Object.keys(req.body);
+    let values = Object.values(req.body);
+    for(let i = 0; i < keys.length; i++){
+      str += keys[i] + "=" + values[i];
+    }
+    console.log("str", str)
     const response = await axios.request({
       url: igdbBaseUrl + req.url,
       method: req.method,
@@ -43,7 +50,7 @@ app.all("*", urlencoded(), async (req: Request, res: Response) => {
         "Content-Type": "text/plain",
         ...getHeaders()
       },
-      data: Object.keys(req.body)[0],
+      data: str,
       responseType: req.url.endsWith(".pb") ? "arraybuffer" : undefined,
       transformResponse: (r) => r,
     });
