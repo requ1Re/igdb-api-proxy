@@ -14,9 +14,10 @@ const igdbBaseUrl = "https://api.igdb.com/v4";
 let tokenResponse: TokenResponse;
 let tokenExpiryDateUnix = Date.now() / 1000;
 
-app.all("*", express.raw(), async (req: Request, res: Response) => {
-  if (req.header("Authorization") !== "Bearer " + process.env.APP_API_TOKEN && process.env.NODE_ENV !== "development")
+app.all("*", async (req: Request, res: Response) => {
+  if (req.header("Authorization")?.split(' ')[1] !== process.env.APP_API_TOKEN && process.env.NODE_ENV !== "development"){
     return res.status(401).send("Unauthorized");
+  }
 
   console.log(`[server] Fetching: ${igdbBaseUrl}${req.url}`);
   console.log(`[server] Body: ${req.body}`);
