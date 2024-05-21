@@ -1,7 +1,6 @@
 import axios from "axios";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
-import { TokenResponse } from "./TokenResponse";
 
 dotenv.config();
 
@@ -21,13 +20,15 @@ app.use(express.urlencoded({extended: false,
 }));
 
 app.all("*", async (req: Request, res: Response) => {
-  if (req.header("Authorization")?.split(' ')[1] !== process.env.APP_API_TOKEN && process.env.NODE_ENV !== "development"){
-    return res.status(401).send("Unauthorized");
-  }
-
   console.log(`[server] -------------------`);
   console.log(`[server] --- New Request ---`);
   console.log(`[server] URL`, req.url);
+
+  if (req.header("Authorization")?.split(' ')[1] !== process.env.APP_API_TOKEN && process.env.NODE_ENV !== "development"){
+    console.log(`[server] Unauthorized. Sending 401`);
+    return res.status(401).send("Unauthorized");
+  }
+
   console.log(`[server] Text Body`, (req as any).textBody);
   console.log(`[server] Query`, req.query);
   console.log(`[server] Params`, req.params);
@@ -72,7 +73,7 @@ app.listen(port, async () => {
 
   console.log(`[server]: Server is running at http://localhost:${port}`);
 
-  // await refreshToken()
+  await refreshToken()
 });
 
 async function refreshToken() {
@@ -105,4 +106,10 @@ function getHeaders(): Record<string, string> {
     "Client-ID": process.env.CLIENT_ID!,
     Authorization: `Bearer ${tokenResponse.access_token}`,
   };
+}
+
+export interface TokenResponse {
+  access_token: string;
+  expires_in: number;
+  token_type: string;
 }
